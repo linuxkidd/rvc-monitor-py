@@ -238,7 +238,7 @@ if __name__ == "__main__":
 
     debug_level = args.debug 
     mqttOut = args.mqtt
-    screenOut = args.screen
+    screenOut = args.output
 
     if mqttOut:
         import paho.mqtt.client as mqtt
@@ -261,7 +261,7 @@ if __name__ == "__main__":
         print('Cannot find interface.')
         exit()
 
-    print("Loading RVC Spec file.")
+    print("Loading RVC Spec file {}.".format(args.specfile))
     with open(args.specfile,'r') as specfile:
         try:
             spec=yaml.safe_load(specfile)

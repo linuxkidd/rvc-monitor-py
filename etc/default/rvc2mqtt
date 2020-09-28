@@ -23,4 +23,4 @@
 #                         default: /etc/rvc/rvc-spec.yml
 # 
 
-OPTS="-s0 -m1"
+OPTS="-o0 -m1"
