@@ -5,6 +5,8 @@ Description=RVC to MQTT
 Restart=always
 RestartSec=1
 EnvironmentFile=-/etc/default/rvc2mqtt
+ExecStartPre=/sbin/ip link set %i down
+ExecStartPre=/sbin/ip link set %i up type can bitrate 250000
 ExecStart=/usr/bin/rvc2mqtt.py $OPTS -i %i
 
 [Install]
