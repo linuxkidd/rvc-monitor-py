@@ -1,0 +1,26 @@
+#
+#  Options file for rvc2mqtt.py service
+#
+# available arguments:
+#   -b BROKER, --broker BROKER
+#                         MQTT Broker Host
+#                         default: 127.0.0.1
+#
+#   -d {0,1,2}, --debug {0,1,2}
+#                         debug data
+#                         default: 0
+#
+#   -m {0,1,2}, --mqtt {0,1,2}
+#                         Send to MQTT, 1=Publish, 2=Retain
+#                         default: 0
+#
+#   -o {0,1}, --output {0,1}
+#                         Dump parsed data to stdout
+#                         default: 0
+#
+#   -s SPECFILE, --specfile SPECFILE
+#                         RVC Spec file
+#                         default: /etc/rvc/rvc-spec.yml
+# 
+
+OPTS="-s0 -m1"
