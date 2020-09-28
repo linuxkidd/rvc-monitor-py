@@ -29,7 +29,19 @@ def on_mqtt_message(client, userdata, msg):
         print("Send "+topic+" Command: "+msg.payload.decode('ascii'))
     #can_tx(devIds[dev],[ commands[msg.payload.decode('ascii')] ])
 
+# can_tx(canid, canmsg)
+#    canid = numeric CAN ID, not string
+#    canmsg = Array of numeric values to transmit
+#           - Alternately, a string of two position hex values can be accepted
+#
+# Examples:
+#   can_tx( 0x19FEDB99, [0x02, 0xFF, 0xC8, 0x03, 0xFF, 0x00, 0xFF, 0xFF] )
+#   can_tx( 0x19FEDB99, '02FFC803FF00FFFF' )
+#
 def can_tx(canid,canmsg):
+    if isinstance(canmsg, str):
+        tmp = canmsg
+        canmsg = [int(tmp[x:x+2],16) for x in range( 0, len(tmp), 2 )]
     msg = can.Message(arbitration_id=canid, data=canmsg, extended_id=True)
     try:
         bus.send(msg)
