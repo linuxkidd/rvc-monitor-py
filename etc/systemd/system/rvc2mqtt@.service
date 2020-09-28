@@ -5,7 +5,7 @@ Description=RVC to MQTT
 Restart=always
 RestartSec=1
 EnvironmentFile=-/etc/default/rvc2mqtt
-ExecStart=/usr/bin/rvc2mqtt.py $OPTS -p /dev/%i
+ExecStart=/usr/bin/rvc2mqtt.py $OPTS -i %i
 
 [Install]
 WantedBy=multi-user.target
