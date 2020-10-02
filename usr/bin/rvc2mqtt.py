@@ -17,7 +17,7 @@ def on_mqtt_connect(client, userdata, flags, rc):
     if debug_level:
         print("MQTT Connected with code "+str(rc))
     client.subscribe([
-        ("RVC/transmit/#",0)
+        (mqttTopic + "/transmit/#", 0)
         ])
 
 def on_mqtt_subscribe(client, userdata, mid, granted_qos):
@@ -222,7 +222,7 @@ def main():
             print(json.dumps(myresult))
 
         if mqttOut:
-            topic="RVC/"+myresult['name']
+            topic = mqttTopic + "/" + myresult['name']
             try:
                 topic += "/" + str(myresult['instance'])
             except:
@@ -247,11 +247,13 @@ if __name__ == "__main__":
     parser.add_argument("-m", "--mqtt", default = 0, type=int, choices=[0, 1, 2], help="Send to MQTT, 1=Publish, 2=Retain")
     parser.add_argument("-o", "--output", default = 0, type=int, choices=[0, 1], help="Dump parsed data to stdout")
     parser.add_argument("-s", "--specfile", default = "/etc/rvc/rvc-spec.yml", help="RVC Spec file")
+    parser.add_argument("-t", "--topic", default = "RVC", help="MQTT topic prefix")
     args = parser.parse_args()
 
     debug_level = args.debug 
     mqttOut = args.mqtt
     screenOut = args.output
+    mqttTopic = args.topic
 
     if mqttOut:
         import paho.mqtt.client as mqtt
