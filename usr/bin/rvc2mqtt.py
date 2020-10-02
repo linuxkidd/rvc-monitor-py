@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
-import argparse,array,can,json,os,queue,re,signal,threading,time,yaml
+import argparse,array,can,json,os,queue,re,signal,threading,time
+import ruamel.yaml as yaml
 
 def signal_handler(signal, frame):
     global t
@@ -26,7 +27,7 @@ def on_mqtt_subscribe(client, userdata, mid, granted_qos):
 def on_mqtt_message(client, userdata, msg):
     topic=msg.topic[13:]
     if debug_level:
-        print("Send "+topic+" Command: "+msg.payload.decode('ascii'))
+        print("Send CAN ID: "+topic+" Data: "+msg.payload.decode('ascii'))
     #can_tx(devIds[dev],[ commands[msg.payload.decode('ascii')] ])
 
 # can_tx(canid, canmsg)
@@ -276,7 +277,7 @@ if __name__ == "__main__":
     print("Loading RVC Spec file {}.".format(args.specfile))
     with open(args.specfile,'r') as specfile:
         try:
-            spec=yaml.safe_load(specfile)
+            spec=yaml.round_trip_load(specfile)
         except yaml.YAMLError as err:
             print(err)
             exit(1)
