@@ -56,7 +56,7 @@ class CANWatcher(threading.Thread):
       threading.Thread.__init__(self)
       # A flag to notify the thread that it should finish up and exit
       self.kill_received = False
- 
+
     def run(self):
         while not self.kill_received:
             message = bus.recv()
@@ -118,7 +118,7 @@ def rvc_decode(mydgn,mydata):
             result[param['name'] + " definition"] = mydef
         except:
             pass
-            
+
 
         param_count += 1
 
@@ -250,7 +250,7 @@ if __name__ == "__main__":
     parser.add_argument("-t", "--topic", default = "RVC", help="MQTT topic prefix")
     args = parser.parse_args()
 
-    debug_level = args.debug 
+    debug_level = args.debug
     mqttOut = args.mqtt
     screenOut = args.output
     mqttTopic = args.topic
@@ -283,7 +283,7 @@ if __name__ == "__main__":
         except yaml.YAMLError as err:
             print(err)
             exit(1)
-    
+
     print("Processing start...")
 
     q = queue.Queue()
