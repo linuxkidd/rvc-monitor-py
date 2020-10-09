@@ -17,6 +17,8 @@ optional arguments:
                         CAN interface to use
   -m {0,1,2}, --mqtt {0,1,2}
                         Send to MQTT, 1=Publish, 2=Retain
+  -t TOPIC, --topic TOPIC
+                        Set top-level MQTT topic (default: "RVC")
   -o {0,1}, --output {0,1}
                         Dump parsed data to stdout
   -s SPECFILE, --specfile SPECFILE
