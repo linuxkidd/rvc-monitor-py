@@ -82,6 +82,8 @@ def rvc_decode(mydgn,mydata):
 
     param_count = 0
     for param in params:
+        param['name'] = parameterize_string(param['name'])
+
         try:
             mybytes = get_bytes(mydata,param['byte'])
             myvalue = int(mybytes,16) # Get the decimal value of the hex bytes
@@ -115,7 +117,7 @@ def rvc_decode(mydgn,mydata):
             mydef = param['values'][int(myvalue)]
             # int(myvalue) is a hack because the spec yaml interprets binary bits
             # as integers instead of binary strings.
-            result[param['name'] + " definition"] = mydef
+            result[param['name'] + "_definition"] = mydef
         except:
             pass
 
@@ -145,6 +147,12 @@ def get_bits(mydata,bitrange):
         sub_bits = mybits[ 7 - bitrange : bitrange + 1 ]
 
     return sub_bits
+
+# Convert a string to something easier to use as a JSON parameter by
+# converting spaces and slashes to underscores, and removing parentheses.
+# e.g.: "Manufacturer Code (LSB) in/out" => "manufacturer_code_lsb_in_out"
+def parameterize_string(string):
+    return string.translate(string.maketrans(' /', '__', '()')).lower()
 
 def tempC2F(degc):
     return round( ( degc * 9 / 5 ) + 32, 1 )
