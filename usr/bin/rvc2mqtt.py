@@ -144,7 +144,7 @@ def get_bits(mydata,bitrange):
         bset=bitrange.split('-')
         sub_bits = mybits[ 7 - int(bset[1]) : 8 - int(bset[0]) ]
     except:
-        sub_bits = mybits[ 7 - bitrange : bitrange + 1 ]
+        sub_bits = mybits[ 7 - bitrange : 8 - bitrange ]
 
     return sub_bits
 
