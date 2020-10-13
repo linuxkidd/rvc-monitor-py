@@ -108,7 +108,7 @@ def rvc_decode(mydgn,mydata):
 
         try:
             if param['unit'].lower() == 'deg c':
-                result[param['name']+' F'] = tempC2F(myvalue)
+                result[param['name']+'_f'] = tempC2F(myvalue)
         except:
             pass
 
