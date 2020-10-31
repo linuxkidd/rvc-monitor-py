@@ -16,18 +16,20 @@ signal.signal(signal.SIGINT, signal_handler)
 def on_mqtt_connect(client, userdata, flags, rc):
     if debug_level:
         print("MQTT Connected with code "+str(rc))
-    client.subscribe([
-        (mqttTopic + "/transmit/#", 0)
-        ])
+    client.subscribe(mqttTopic + "/send/#", 0)
 
 def on_mqtt_subscribe(client, userdata, mid, granted_qos):
     if debug_level:
         print("MQTT Sub: "+str(mid))
 
 def on_mqtt_message(client, userdata, msg):
-    topic=msg.topic[13:]
+    topic = msg.topic.split('/')[-1]
+    payload = json.loads(msg.payload)
     if debug_level:
-        print("Send CAN ID: "+topic+" Data: "+msg.payload.decode('ascii'))
+        print("MQTT command received: " + topic + ": " + msg.payload.decode('ascii'))
+    result = rvc_encode(topic, payload)
+    if debug_level:
+        print("Encoded CAN data: " + result['data'])
     #can_tx(devIds[dev],[ commands[msg.payload.decode('ascii')] ])
 
 # can_tx(canid, canmsg)
@@ -46,7 +48,7 @@ def can_tx(canid,canmsg):
     msg = can.Message(arbitration_id=canid, data=canmsg, extended_id=True)
     try:
         bus.send(msg)
-        if debug_level>0:
+        if debug_level:
             print("Message sent on {}".format(bus.channel_info))
     except can.CanError:
         print("CAN Send Failed")
@@ -62,11 +64,60 @@ class CANWatcher(threading.Thread):
             message = bus.recv()
             q.put(message)  # Put message into queue
 
+def rvc_encode(mydgn, mydata):
+    result = { 'dgn': mydgn, 'data': '', 'name': "UNKNOWN-" + mydgn }
+    if mydgn not in spec:
+        return result
+
+    # If this decoder has an alias, load the alias's parameters first. Then load
+    # the normal parameters, which will override any parameters from the alias.
+    decoder = spec[mydgn]
+    result['name'] = decoder['name']
+    params = []
+    try:
+        params.extend(spec[decoder['alias']]['parameters'])
+    except:
+        pass
+
+    try:
+        params.extend(decoder['parameters'])
+    except:
+        pass
+
+    mybytes = 'FFFFFFFFFFFFFFFF'
+    param_count = 0
+    for param in params:
+        name = parameterize_string(param['name'])
+        try:
+            value = mydata[name]
+        except:
+            continue
+
+        try:
+            value = encode_unit(value, param['unit'], param['type'])
+        except:
+            pass
+
+        try:
+            mybytes = set_bits(mybytes, param['byte'], param['bit'], value)
+        except:
+            mybytes = set_byte(mybytes, param['byte'], value)
+
+        param_count += 1
+
+    if param_count == 0:
+        result['ENCODER PENDING'] = 1
+
+    result['data'] = mybytes
+    return result
+
 def rvc_decode(mydgn,mydata):
     result = { 'dgn':mydgn, 'data':mydata, 'name':"UNKNOWN-"+mydgn }
     if mydgn not in spec:
         return result
 
+    # If this decoder has an alias, load the alias's parameters first. Then load
+    # the normal parameters, which will override any parameters from the alias.
     decoder = spec[mydgn]
     result['name'] = decoder['name']
     params = []
@@ -100,7 +151,7 @@ def rvc_decode(mydgn,mydata):
             pass
 
         try:
-            myvalue = convert_unit(myvalue,param['unit'],param['type'])
+            myvalue = decode_unit(myvalue,param['unit'],param['type'])
         except:
             pass
 
@@ -121,13 +172,30 @@ def rvc_decode(mydgn,mydata):
         except:
             pass
 
-
         param_count += 1
 
     if param_count == 0:
         result['DECODER PENDING'] = 1
 
     return result
+
+# No RVC command parameters span multiple bytes, thus only single-byte
+# setting is provided.
+def set_byte(mybytes, bytenum, value):
+    newbytes = mybytes[:bytenum*2] + '{:02x}'.format(value) + mybytes[(bytenum+1)*2:]
+    return newbytes.upper()
+
+def set_bits(mybytes, bytenum, bitrange, binvalue):
+    mybits="{0:08b}".format(int(mybytes[bytenum*2] + mybytes[bytenum*2+1], 16))
+
+    try:
+        bset = bitrange.split('-')
+        newbits = mybits[: 7-int(bset[1])] + binvalue + mybits[8-int(bset[0]):]
+    except:
+        newbits = mybits[: 7-int(bitrange)] + binvalue + mybits[8-int(bitrange):]
+
+    newbytes = set_byte(mybytes, bytenum, int(newbits, 2))
+    return newbytes
 
 def get_bytes(mybytes,byterange):
     try:
@@ -157,7 +225,52 @@ def parameterize_string(string):
 def tempC2F(degc):
     return round( ( degc * 9 / 5 ) + 32, 1 )
 
-def convert_unit(myvalue,myunit,mytype):
+def encode_unit(myvalue, myunit, mytype):
+    new_value = myvalue
+    mu = myunit.lower()
+    if mu == 'pct':
+        if myvalue <= 100:
+            new_value = myvalue * 2
+
+    elif mu == 'deg c':
+        new_value = 0
+        if mytype == 'uint8' and myvalue != ( 1 << 8 ) - 1:
+            new_value = myvalue + 40
+        elif mytype == 'uint16' and myvalue != ( 1 << 16 ) - 1:
+            new_value = int((myvalue + 273) / 0.03125)
+
+    elif mu == 'v':
+        new_value = 0
+        if mytype == 'uint8' and myvalue != ( 1 << 8 ) - 1:
+            new_value = myvalue
+        elif mytype == 'uint16' and myvalue != ( 1 << 16 ) - 1:
+            new_value = int(myvalue / 0.05)
+
+    elif mu == 'a':
+        new_value = 0
+        if mytype == 'uint8':
+            new_value = myvalue
+        elif mytype == 'uint16' and myvalue != ( 1 << 16 ) - 1:
+            new_value = int((myvalue + 1600) / 0.05)
+        elif mytype == 'uint32' and myvalue != ( 1 << 32 ) - 1:
+            new_value = int((myvalue + 2000000) / 0.001)
+
+    elif mu == 'hz':
+        if mytype == 'uint16' and myvalue != ( 1 << 16 ) - 1:
+            new_value = int(myvalue * 128)
+
+    elif mu == 'sec':
+        if mytype == 'uint8' and myvalue > 299:
+            new_value = int(myvalue / 60) - 4 + 240
+        elif mytype == 'uint16':
+            new_value = int(myvalue / 2)
+
+    elif mu == 'bitmap':
+        new_value = int(myvalue, 2)
+
+    return new_value
+
+def decode_unit(myvalue,myunit,mytype):
     new_value = myvalue
     mu = myunit.lower()
     if mu == 'pct':
@@ -198,7 +311,7 @@ def convert_unit(myvalue,myunit,mytype):
             new_value = myvalue * 2
 
     elif mu == 'bitmap':
-        new_value = "{0:b}".format(myvalue)
+        new_value = "{0:08b}".format(myvalue)
 
     return new_value
 
@@ -212,7 +325,7 @@ def main():
             return
 
         message = q.get()
-        if debug_level>0:
+        if debug_level > 1:
             print("{0:f} {1:X} ({2:X}) ".format(message.timestamp, message.arbitration_id, message.dlc),end='',flush=True)
 
         canID = "{0:b}".format(message.arbitration_id)
@@ -220,7 +333,7 @@ def main():
         dgn   = "{0:05X}".format(int(canID[4:21],2))
         srcAD = "{0:02X}".format(int(canID[24:],2))
 
-        if debug_level>0:
+        if debug_level > 1:
             print("DGN: {0:s}, Prio: {1:d}, srcAD: {2:s}, Data: {3:s}".format(
                 dgn,prio,srcAD,", ".join("{0:02X}".format(x) for x in message.data)))
 
@@ -255,7 +368,7 @@ if __name__ == "__main__":
     parser.add_argument("-m", "--mqtt", default = 0, type=int, choices=[0, 1, 2], help="Send to MQTT, 1=Publish, 2=Retain")
     parser.add_argument("-o", "--output", default = 0, type=int, choices=[0, 1], help="Dump parsed data to stdout")
     parser.add_argument("-s", "--specfile", default = "/etc/rvc/rvc-spec.yml", help="RVC Spec file")
-    parser.add_argument("-t", "--topic", default = "RVC", help="MQTT topic prefix")
+    parser.add_argument("-t", "--topic", default = "RVC", help="MQTT topic prefix (default: 'RVC')")
     args = parser.parse_args()
 
     debug_level = args.debug
