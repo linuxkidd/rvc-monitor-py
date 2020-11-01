@@ -198,7 +198,7 @@ def convert_unit(myvalue,myunit,mytype):
             new_value = myvalue * 2
 
     elif mu == 'bitmap':
-        new_value = "{0:b}".format(myvalue)
+        new_value = "{0:08b}".format(myvalue)
 
     return new_value
 
