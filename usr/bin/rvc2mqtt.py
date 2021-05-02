@@ -3,6 +3,7 @@
 import argparse,array,can,json,os,queue,re,signal,threading,time
 import ruamel.yaml as yaml
 
+
 def signal_handler(signal, frame):
     global t
     print('')
@@ -62,7 +63,7 @@ class CANWatcher(threading.Thread):
             message = bus.recv()
             q.put(message)  # Put message into queue
 
-def rvc_decode(mydgn,mydata):
+def rvc_decode(mydgn, mydata):
     result = { 'dgn':mydgn, 'data':mydata, 'name':"UNKNOWN-"+mydgn }
     if mydgn not in spec:
         return result
@@ -82,7 +83,8 @@ def rvc_decode(mydgn,mydata):
 
     param_count = 0
     for param in params:
-        param['name'] = parameterize_string(param['name'])
+        if parameterized_strings:
+            param['name'] = parameterize_string(param['name'])
 
         try:
             mybytes = get_bytes(mydata,param['byte'])
@@ -215,27 +217,33 @@ def main():
         if debug_level>0:
             print("{0:f} {1:X} ({2:X}) ".format(message.timestamp, message.arbitration_id, message.dlc),end='',flush=True)
 
-        canID = "{0:b}".format(message.arbitration_id)
-        prio  = int(canID[0:3],2)
-        dgn   = "{0:05X}".format(int(canID[4:21],2))
-        srcAD = "{0:02X}".format(int(canID[24:],2))
+        try:
+            canID = "{0:b}".format(message.arbitration_id)
+            prio  = int(canID[0:3],2)
+            dgn   = "{0:05X}".format(int(canID[4:21],2))
+            srcAD = "{0:02X}".format(int(canID[24:],2))
+        except:
+            dgn = None
+            if debug_level>0:
+                print(f"Failed to parse {message}")
 
-        if debug_level>0:
-            print("DGN: {0:s}, Prio: {1:d}, srcAD: {2:s}, Data: {3:s}".format(
-                dgn,prio,srcAD,", ".join("{0:02X}".format(x) for x in message.data)))
+        if dgn:
+            if debug_level>0:
+                print("DGN: {0:s}, Prio: {1:d}, srcAD: {2:s}, Data: {3:s}".format(
+                    dgn,prio,srcAD,", ".join("{0:02X}".format(x) for x in message.data)))
 
-        myresult=rvc_decode(dgn,"".join("{0:02X}".format(x) for x in message.data))
+            myresult=rvc_decode(dgn,"".join("{0:02X}".format(x) for x in message.data))
 
-        if screenOut>0:
-            print(json.dumps(myresult))
+            if screenOut>0:
+                print(json.dumps(myresult))
 
-        if mqttOut:
-            topic = mqttTopic + "/" + myresult['name']
-            try:
-                topic += "/" + str(myresult['instance'])
-            except:
-                pass
-            mqttc.publish(topic,json.dumps(myresult),retain=retain)
+            if mqttOut:
+                topic = mqttTopic + "/" + myresult['name']
+                try:
+                    topic += "/" + str(myresult['instance'])
+                except:
+                    pass
+                mqttc.publish(topic,json.dumps(myresult),retain=retain)
 
     def mainLoop():
         if mqttOut:
@@ -256,12 +264,14 @@ if __name__ == "__main__":
     parser.add_argument("-o", "--output", default = 0, type=int, choices=[0, 1], help="Dump parsed data to stdout")
     parser.add_argument("-s", "--specfile", default = "/etc/rvc/rvc-spec.yml", help="RVC Spec file")
     parser.add_argument("-t", "--topic", default = "RVC", help="MQTT topic prefix")
+    parser.add_argument("-p", "--pstrings", action='store_true', help="Send parameterized strings to mqtt")
     args = parser.parse_args()
 
     debug_level = args.debug
     mqttOut = args.mqtt
     screenOut = args.output
     mqttTopic = args.topic
+    parameterized_strings = args.pstrings
 
     if mqttOut:
         import paho.mqtt.client as mqtt
