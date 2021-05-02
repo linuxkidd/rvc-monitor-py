@@ -28,6 +28,8 @@ optional arguments:
                         RVC Spec file
   -t TOPIC, --topic TOPIC
                         Set top-level MQTT topic (default: "RVC")
+  -p, -pstrings
+                        Send parameterized strings to mqtt
 ```
 
 ## Requirements
@@ -41,9 +43,9 @@ Raspberry Pi 3B with a PiCAN2 board. Install the canbus utilities:
   ~~~
   dtoverlay=mcp2515-can0,oscillator=16000000,interrupt=25
   ~~~
-* Python packages:
+* Python packages dependancies:
   ~~~
-  pip3 install python-can paho-mqtt ruamel.yaml
+  pip3 install -r requirements.txt
   ~~~
 * An MQTT message broker, such as Mosquitto.
   ~~~
