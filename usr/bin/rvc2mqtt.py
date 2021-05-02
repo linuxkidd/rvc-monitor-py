@@ -129,7 +129,6 @@ def rvc_decode(mydgn, mydata):
         except:
             pass
 
-
         param_count += 1
 
     if param_count == 0:
@@ -228,12 +227,10 @@ def main():
             prio  = int(canID[0:3],2)
             dgn   = "{0:05X}".format(int(canID[4:21],2))
             srcAD = "{0:02X}".format(int(canID[24:],2))
-        except:
-            dgn = None
+        except Exception as e:
             if debug_level>0:
-                print(f"Failed to parse {message}")
-
-        if dgn:
+                print(f"Failed to parse {message}: {e}")
+        else:
             if debug_level>0:
                 print("DGN: {0:s}, Prio: {1:d}, srcAD: {2:s}, Data: {3:s}".format(
                     dgn,prio,srcAD,", ".join("{0:02X}".format(x) for x in message.data)))
