@@ -110,7 +110,10 @@ def rvc_decode(mydgn, mydata):
 
         try:
             if param['unit'].lower() == 'deg c':
-                result[param['name']+'_f'] = tempC2F(myvalue)
+                if parameterized_strings:
+                    result[param['name'] + '_f'] = tempC2F(myvalue)
+                else:
+                    result[param['name'] + ' F'] = tempC2F(myvalue)
         except:
             pass
 
@@ -119,7 +122,10 @@ def rvc_decode(mydgn, mydata):
             mydef = param['values'][int(myvalue)]
             # int(myvalue) is a hack because the spec yaml interprets binary bits
             # as integers instead of binary strings.
-            result[param['name'] + "_definition"] = mydef
+            if parameterized_strings:
+                result[param['name'] + "_definition"] = mydef
+            else:
+                result[param['name'] + " definition"] = mydef
         except:
             pass
 
