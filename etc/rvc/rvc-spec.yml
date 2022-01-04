@@ -2792,9 +2792,64 @@ API_VERSION: 0
 
 1FFB3:
   name: WATER_PUMP_STATUS
+  parameters:
+    - byte: 0
+      bit: 0-1
+      name: operating status
+      type: bit2
+      values:
+        00: pump disabled
+        01: pump enabled
+    - byte: 0
+      bit: 2-3
+      name: pump status
+      type: bit2
+      values:
+        00: pump not running
+        01: pump running
+    - byte: 0
+      bit: 4-5
+      name: water hookup detected
+      type: bit2
+      values:
+        00: outside water connected
+        01: no outside water
+    - byte: 1-2
+      name: current system pressure
+      type: unit16
+      unit: Pa
+    - byte: 3-4
+      name: pump pressure setting
+      type: unit16
+      unit: Pa
+    - byte: 5-6
+      name: regulator pressure setting
+      type: unit16
+      unit: Pa
+    - byte: 7
+      name: operating current
+      type: uint8
+      unit: A
 
 1FFB2:
   name: WATER_PUMP_COMMAND
+  parameters:
+    - byte: 0
+      bit: 0-1
+      name: command
+      type: bit2
+      values:
+        00: disable pump
+        01: enable pump
+    - byte: 1-2
+      name: pump pressure setting
+      type: uint16
+      unit: Pa
+    - byte: 3-4
+      name: regulator pressure setting
+      type: uint16
+      unit: Pa
+
 
 1FFB1:
   name: AUTOFILL_STATUS
@@ -3263,6 +3318,61 @@ API_VERSION: 0
       bit: 0-3
       name: bank select
       type: uint4
+
+1FE98:
+  name: WATERHEATER_COMMAND2
+
+1FE97:
+  name: CIRCULATION_PUMP_STATUS
+  parameters:
+    - byte: 0
+      name: instance
+      type: uint8
+      comment: instance 0 is all
+    - byte: 1
+      bit: 0-3
+      name: output status
+      type: bit4
+      values:
+        0000: off
+        0001: on
+        0101: test (forced on)
+    - byte: 2
+      bit: 0-1
+      name: pump overcurrent status
+      type: bit2
+      values:
+        00: no overcurrent detected
+        01: overcurrent detected
+    - byte: 2
+      bit: 2-3
+      name: pump undercurrent status
+      type: bit2
+      values:
+        00: no undercurrent detected
+        01: undercurrent detected
+    - byte: 2
+      bit: 4-5
+      name: pump temperature status
+      type: bit2
+      values:
+        00: temperature normal
+        01: temperature warning
+
+1FE96:
+  name: CIRCULATION_PUMP_COMMAND
+  parameters:
+    - byte: 0
+      name: instance
+      type: uint8
+      comment: instance 0 is all
+    - byte: 1
+      bit: 0-3
+      name: output mode
+      type: bit4
+      values:
+        0000: off (end of test)
+        0101: test (forced on)
 
 0FECA:
   name: DM_1
